@@ -3,48 +3,33 @@ package secrets
 import (
 	"context"
 	"fmt"
-	"log"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
-// Secrets helper
-type Secrets struct {
+// Client for secrets helper
+type Client struct {
+	Context   context.Context
 	client    *secretmanager.Client
-	ctx       context.Context
-	ProjectID string
+	projectID string
 }
 
-// New secrets helper.
-func New(projectID string) *Secrets {
-	ctx := initSecretManagerContext()
-	client := initSecretManagerClient(ctx)
-	s := Secrets{client, ctx, projectID}
-	return &s
-}
-
-func initSecretManagerClient(ctx context.Context) *secretmanager.Client {
-	// Create the client.
+// New secrets helper
+func New(projectID string) (Client, error) {
+	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
-		log.Fatalf("failed to setup client: %v", err)
+		return Client{}, err
 	}
-
-	return client
+	return Client{ctx, client, projectID}, nil
 }
 
-func initSecretManagerContext() context.Context {
-	ctx := context.Background()
-
-	return ctx
-}
-
-// CreateSecret creates a new secret
-func (s *Secrets) CreateNewSecret(secretID string, payload []byte) *secretmanagerpb.SecretVersion {
+// CreateNewSecret creates a new secret
+func (c *Client) CreateNewSecret(secretID string, payload []byte) (*secretmanagerpb.SecretVersion, error) {
 	// Create the request to create the secret.
 	createSecretReq := &secretmanagerpb.CreateSecretRequest{
-		Parent:   fmt.Sprintf("projects/%s", s.ProjectID),
+		Parent:   fmt.Sprintf("projects/%s", c.projectID),
 		SecretId: secretID,
 		Secret: &secretmanagerpb.Secret{
 			Replication: &secretmanagerpb.Replication{
@@ -55,9 +40,9 @@ func (s *Secrets) CreateNewSecret(secretID string, payload []byte) *secretmanage
 		},
 	}
 
-	secret, err := s.client.CreateSecret(s.ctx, createSecretReq)
+	secret, err := c.client.CreateSecret(c.Context, createSecretReq)
 	if err != nil {
-		log.Fatalf("failed to add secret: %v", err)
+		return nil, fmt.Errorf("failed to add secret: %v", err)
 	}
 
 	// Build the request.
@@ -69,12 +54,27 @@ func (s *Secrets) CreateNewSecret(secretID string, payload []byte) *secretmanage
 	}
 
 	// Call the API.
-	version, err := s.client.AddSecretVersion(s.ctx, addSecretVersionReq)
+	version, err := c.client.AddSecretVersion(c.Context, addSecretVersionReq)
 	if err != nil {
-		log.Fatalf("failed to add secret version: %v", err)
+		return nil, fmt.Errorf("failed to add secret version: %v", err)
 	}
 
-	return version
+	return version, nil
+}
+
+// GetSecretVersion gets an existing version of secret
+func (c *Client) GetSecretVersion(secretName string) ([]byte, error) {
+	// Build the request.
+	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: secretName,
+	}
+
+	result, err := c.client.AccessSecretVersion(c.Context, accessRequest)
+	if err != nil {
+		return []byte(""), fmt.Errorf("failed to access secret version: %v", err)
+	}
+
+	return result.Payload.Data, nil
 }
 
 /*
@@ -90,10 +90,7 @@ func (s *Secrets) Create {}
 	}
 
 	// Call the API.
-	result, err := client.AccessSecretVersion(ctx, accessRequest)
-	if err != nil {
-			log.Fatalf("failed to access secret version: %v", err)
-	}
+
 
 	// Print the secret payload.
 	//
