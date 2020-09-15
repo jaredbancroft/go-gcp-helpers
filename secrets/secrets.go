@@ -3,6 +3,7 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
@@ -63,10 +64,10 @@ func (c *Client) CreateNewSecret(secretID string, payload []byte) (*secretmanage
 }
 
 // GetSecretVersion gets an existing version of secret
-func (c *Client) GetSecretVersion(secretName string) ([]byte, error) {
+func (c *Client) GetSecretVersion(secretName string, versionNumber int) ([]byte, error) {
 	// Build the request.
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: secretName,
+		Name: "projects/" + c.projectID + "/secrets/" + secretName + "/versions/" + strconv.Itoa(versionNumber),
 	}
 
 	result, err := c.client.AccessSecretVersion(c.Context, accessRequest)
@@ -76,26 +77,3 @@ func (c *Client) GetSecretVersion(secretName string) ([]byte, error) {
 
 	return result.Payload.Data, nil
 }
-
-/*
-
-
-func (s *Secrets) Create {}
-
-/*
-
-	// Build the request.
-	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
-			Name: version.Name,
-	}
-
-	// Call the API.
-
-
-	// Print the secret payload.
-	//
-	// WARNING: Do not print the secret in a production environment - this
-	// snippet is showing how to access the secret material.
-	log.Printf("Plaintext: %s", result.Payload.Data)
-}
-*/
