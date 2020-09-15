@@ -69,9 +69,9 @@ RUN curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-ke
 && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # [Optional] Uncomment the next line to use go get to install anything else you need
-RUN go get -x github.com/gin-gonic/gin \
-&& go get -x cloud.google.com/go/secretmanager/apiv1 \
-&& go get -x google.golang.org/genproto/googleapis/cloud/secretmanager/v1
+RUN go get -u -x github.com/gin-gonic/gin \
+&& go get -u -x cloud.google.com/go/secretmanager/apiv1 \
+&& go get -u -x google.golang.org/genproto/googleapis/cloud/secretmanager/v1
 
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
