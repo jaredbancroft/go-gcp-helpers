@@ -2,6 +2,9 @@ package firestore
 
 import (
 	"context"
+	"fmt"
+
+	"google.golang.org/api/iterator"
 
 	fs "cloud.google.com/go/firestore"
 )
@@ -13,6 +16,9 @@ type Client struct {
 	projectID string
 }
 
+// KeyValue is a slice of keyvalue pairs
+type KeyValue map[string]interface{}
+
 // New secrets helper
 func New(projectID string) (Client, error) {
 	ctx := context.Background()
@@ -23,25 +29,28 @@ func New(projectID string) (Client, error) {
 	return Client{ctx, client, projectID}, nil
 }
 
-// NewCollection creates a new firestore collection
-func (c *Client) NewCollection(collectionID string) *fs.CollectionRef {
-	newCollection := c.client.Collection(collectionID)
-	return newCollection
-}
-
-// NewDocument creates a new document in a the supplied collection
-func (c *Client) NewDocument(collection *fs.CollectionRef, document string) *fs.DocumentRef {
-	newDocument := collection.Doc(document)
-	return newDocument
-}
-
-// GetSingleDocument gets a single doc from a collection
-func (c *Client) GetSingleDocument(document *fs.DocumentRef) (map[string]interface{}, error) {
-	documentSnapshot, err := document.Get(c.Context)
+// NewDocument add a new document to a collection, creating the collection if it doesn't exist
+func (c *Client) NewDocument(collectionID string, document KeyValue) error {
+	_, _, err := c.client.Collection(collectionID).Add(c.Context, document)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed adding document: %v", err)
 	}
+	return nil
+}
 
-	dataMap := documentSnapshot.Data()
-	return dataMap, nil
+// GetAllDocumentsInCollection returns all documents in a given collection
+func (c *Client) GetAllDocumentsInCollection(collectionID string) ([]KeyValue, error) {
+	iter := c.client.Collection(collectionID).Documents(c.Context)
+	var data []KeyValue
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Failed to iterate: %v", err)
+		}
+		data = append(data, doc.Data())
+	}
+	return data, nil
 }
