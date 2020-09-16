@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"google.golang.org/api/iterator"
@@ -39,7 +40,7 @@ func (c *Client) NewDocument(collectionID string, document KeyValue) error {
 }
 
 // GetAllDocumentsInCollection returns all documents in a given collection
-func (c *Client) GetAllDocumentsInCollection(collectionID string) ([]KeyValue, error) {
+func (c *Client) GetAllDocumentsInCollection(collectionID string) ([]byte, error) {
 	iter := c.client.Collection(collectionID).Documents(c.Context)
 	var data []KeyValue
 	for {
@@ -52,5 +53,7 @@ func (c *Client) GetAllDocumentsInCollection(collectionID string) ([]KeyValue, e
 		}
 		data = append(data, doc.Data())
 	}
-	return data, nil
+
+	jsonData, _ := json.MarshalIndent(data, "", "    ")
+	return jsonData, nil
 }
