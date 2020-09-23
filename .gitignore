@@ -332,7 +332,6 @@ ASALocalRun/
 *.DS_Store
 
 out
-pkg
 debug
 
 # dependencies
