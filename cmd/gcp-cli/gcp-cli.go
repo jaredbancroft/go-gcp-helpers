@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -10,12 +11,13 @@ import (
 
 func newCLICommand() (*cobra.Command, error) {
 	cmd := &cobra.Command{
-		Use:   "gcp-cli [command]",
+		Use:   "gcp-cli",
 		Short: "gcp-cli is a CLI for the go-gcp-helper library",
 		Long:  "gcp-cli is a CLI for the go-gcp-helper library",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+			cmd.Usage()
 		},
+		Version: "v0.0.0",
 	}
 
 	cli.SetupRootCommand(cmd)
@@ -37,35 +39,8 @@ func main() {
 	}
 
 	cmd.SetOut(os.Stdout)
-	if err := cmd.Execute(); err != nil {
+	ctx := context.Background()
+	if err := cmd.ExecuteContext(ctx); err != nil {
 		onError(err)
 	}
-
-	/*s, err := secrets.New("jared-go-react")
-	if err != nil {
-		log.Fatalf("whoops %v", err)
-	}
-	version, err := s.CreateNewSecret("my-new-secret3", []byte("secret datas!"))
-	fmt.Println(err)
-	fmt.Println(version)
-
-	secret, err := s.GetSecretVersion("my-new-secret2", 1)
-	fmt.Println(err)
-	fmt.Println(string(secret))
-
-	f, err := firestore.New("jared-go-react")
-	if err != nil {
-		log.Fatalf("whoops %v", err)
-	}
-	err = f.NewDocument("test", firestore.KeyValue{"fn": "jared", "ln": "bancroft"})
-	if err != nil {
-		log.Fatalf("whoops %v", err)
-	}
-
-	results, err := f.GetAllDocumentsInCollection("test")
-	if err != nil {
-		log.Fatalf("whoops %v", err)
-	}
-
-	fmt.Println(string(results))*/
 }

@@ -11,23 +11,21 @@ import (
 
 // Client for secrets helper
 type Client struct {
-	Context   context.Context
 	client    *secretmanager.Client
 	projectID string
 }
 
 // New secrets helper
-func New(projectID string) (Client, error) {
-	ctx := context.Background()
+func New(ctx context.Context, projectID string) (Client, error) {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return Client{}, err
 	}
-	return Client{ctx, client, projectID}, nil
+	return Client{client, projectID}, nil
 }
 
 // CreateNewSecret creates a new secret
-func (c *Client) CreateNewSecret(secretID string, payload []byte) (*secretmanagerpb.SecretVersion, error) {
+func (c *Client) CreateNewSecret(ctx context.Context, secretID string, payload []byte) (*secretmanagerpb.SecretVersion, error) {
 	// Create the request to create the secret.
 	createSecretReq := &secretmanagerpb.CreateSecretRequest{
 		Parent:   fmt.Sprintf("projects/%s", c.projectID),
@@ -41,7 +39,7 @@ func (c *Client) CreateNewSecret(secretID string, payload []byte) (*secretmanage
 		},
 	}
 
-	secret, err := c.client.CreateSecret(c.Context, createSecretReq)
+	secret, err := c.client.CreateSecret(ctx, createSecretReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add secret: %v", err)
 	}
@@ -55,7 +53,26 @@ func (c *Client) CreateNewSecret(secretID string, payload []byte) (*secretmanage
 	}
 
 	// Call the API.
-	version, err := c.client.AddSecretVersion(c.Context, addSecretVersionReq)
+	version, err := c.client.AddSecretVersion(ctx, addSecretVersionReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add secret version: %v", err)
+	}
+
+	return version, nil
+}
+
+//UpdateSecret adds a new version of the secret
+func (c *Client) UpdateSecret(ctx context.Context, secretName string, payload []byte) (*secretmanagerpb.SecretVersion, error) {
+	// Build the request.
+	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: "projects/" + c.projectID + "/secrets/" + secretName,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: payload,
+		},
+	}
+
+	// Call the API.
+	version, err := c.client.AddSecretVersion(ctx, addSecretVersionReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add secret version: %v", err)
 	}
@@ -64,13 +81,28 @@ func (c *Client) CreateNewSecret(secretID string, payload []byte) (*secretmanage
 }
 
 // GetSecretVersion gets an existing version of secret
-func (c *Client) GetSecretVersion(secretName string, versionNumber int) ([]byte, error) {
+func (c *Client) GetSecretVersion(ctx context.Context, secretName string, versionNumber int) ([]byte, error) {
 	// Build the request.
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: "projects/" + c.projectID + "/secrets/" + secretName + "/versions/" + strconv.Itoa(versionNumber),
 	}
 
-	result, err := c.client.AccessSecretVersion(c.Context, accessRequest)
+	result, err := c.client.AccessSecretVersion(ctx, accessRequest)
+	if err != nil {
+		return []byte(""), fmt.Errorf("failed to access secret version: %v", err)
+	}
+
+	return result.Payload.Data, nil
+}
+
+//GetSecretLatest gets the latest version of the secret
+func (c *Client) GetSecretLatest(ctx context.Context, secretName string) ([]byte, error) {
+	// Build the request.
+	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: "projects/" + c.projectID + "/secrets/" + secretName + "/versions/latest",
+	}
+
+	result, err := c.client.AccessSecretVersion(ctx, accessRequest)
 	if err != nil {
 		return []byte(""), fmt.Errorf("failed to access secret version: %v", err)
 	}

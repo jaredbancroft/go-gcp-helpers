@@ -10,9 +10,8 @@ import (
 	fs "cloud.google.com/go/firestore"
 )
 
-// Client for secrets helper
+// Client for firestore helper
 type Client struct {
-	Context   context.Context
 	client    *fs.Client
 	projectID string
 }
@@ -20,19 +19,18 @@ type Client struct {
 // KeyValue is a slice of keyvalue pairs
 type KeyValue map[string]interface{}
 
-// New secrets helper
-func New(projectID string) (Client, error) {
-	ctx := context.Background()
+// New firestore helper
+func New(ctx context.Context, projectID string) (Client, error) {
 	client, err := fs.NewClient(ctx, projectID)
 	if err != nil {
 		return Client{}, err
 	}
-	return Client{ctx, client, projectID}, nil
+	return Client{client, projectID}, nil
 }
 
 // NewDocument add a new document to a collection, creating the collection if it doesn't exist
-func (c *Client) NewDocument(collectionID string, document KeyValue) error {
-	_, _, err := c.client.Collection(collectionID).Add(c.Context, document)
+func (c *Client) NewDocument(ctx context.Context, collectionID string, document KeyValue) error {
+	_, _, err := c.client.Collection(collectionID).Add(ctx, document)
 	if err != nil {
 		return fmt.Errorf("failed adding document: %v", err)
 	}
@@ -40,8 +38,8 @@ func (c *Client) NewDocument(collectionID string, document KeyValue) error {
 }
 
 // GetAllDocumentsInCollection returns all documents in a given collection
-func (c *Client) GetAllDocumentsInCollection(collectionID string) ([]byte, error) {
-	iter := c.client.Collection(collectionID).Documents(c.Context)
+func (c *Client) GetAllDocumentsInCollection(ctx context.Context, collectionID string) ([]byte, error) {
+	iter := c.client.Collection(collectionID).Documents(ctx)
 	var data []KeyValue
 	for {
 		doc, err := iter.Next()
@@ -56,4 +54,14 @@ func (c *Client) GetAllDocumentsInCollection(collectionID string) ([]byte, error
 
 	jsonData, _ := json.MarshalIndent(data, "", "    ")
 	return jsonData, nil
+}
+
+//MakeKeyValue create a Firestore KeyValue map
+func (c *Client) MakeKeyValue(s string) (KeyValue, error) {
+	kv := make(KeyValue)
+	err := json.Unmarshal([]byte(s), &kv)
+	if err != nil {
+		return KeyValue{}, fmt.Errorf("Error creating Firestore Key Value pairs: %v", err)
+	}
+	return kv, nil
 }
