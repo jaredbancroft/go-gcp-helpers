@@ -88,7 +88,7 @@ func getSecret(ctx context.Context, name string, version string) []byte {
 		log.Fatalf("Error accessing secret: %v", err)
 	}
 
-	return secret
+	return *secret
 }
 
 func createSecret(ctx context.Context, name string, data []byte) string {
@@ -117,5 +117,5 @@ func newSecretsClient(ctx context.Context) secrets.Client {
 		log.Fatalf("Unable to create new Secrets Client: %v", err)
 	}
 
-	return f
+	return *f
 }

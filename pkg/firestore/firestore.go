@@ -20,12 +20,12 @@ type Client struct {
 type KeyValue map[string]interface{}
 
 // New firestore helper
-func New(ctx context.Context, projectID string) (Client, error) {
+func New(ctx context.Context, projectID string) (*Client, error) {
 	client, err := fs.NewClient(ctx, projectID)
 	if err != nil {
-		return Client{}, err
+		return nil, err
 	}
-	return Client{client, projectID}, nil
+	return &Client{client, projectID}, nil
 }
 
 // NewDocument add a new document to a collection, creating the collection if it doesn't exist
@@ -57,11 +57,11 @@ func (c *Client) GetAllDocumentsInCollection(ctx context.Context, collectionID s
 }
 
 //MakeKeyValue create a Firestore KeyValue map
-func (c *Client) MakeKeyValue(s string) (KeyValue, error) {
+func (c *Client) MakeKeyValue(s string) (*KeyValue, error) {
 	kv := make(KeyValue)
 	err := json.Unmarshal([]byte(s), &kv)
 	if err != nil {
-		return KeyValue{}, fmt.Errorf("Error creating Firestore Key Value pairs: %v", err)
+		return nil, fmt.Errorf("Error creating Firestore Key Value pairs: %v", err)
 	}
-	return kv, nil
+	return &kv, nil
 }

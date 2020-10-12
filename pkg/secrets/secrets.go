@@ -16,12 +16,12 @@ type Client struct {
 }
 
 // New secrets helper
-func New(ctx context.Context, projectID string) (Client, error) {
+func New(ctx context.Context, projectID string) (*Client, error) {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
-		return Client{}, err
+		return nil, err
 	}
-	return Client{client, projectID}, nil
+	return &Client{client, projectID}, nil
 }
 
 // CreateNewSecret creates a new secret
@@ -96,7 +96,7 @@ func (c *Client) GetSecretVersion(ctx context.Context, secretName string, versio
 }
 
 //GetSecretLatest gets the latest version of the secret
-func (c *Client) GetSecretLatest(ctx context.Context, secretName string) ([]byte, error) {
+func (c *Client) GetSecretLatest(ctx context.Context, secretName string) (*[]byte, error) {
 	// Build the request.
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: "projects/" + c.projectID + "/secrets/" + secretName + "/versions/latest",
@@ -104,8 +104,8 @@ func (c *Client) GetSecretLatest(ctx context.Context, secretName string) ([]byte
 
 	result, err := c.client.AccessSecretVersion(ctx, accessRequest)
 	if err != nil {
-		return []byte(""), fmt.Errorf("failed to access secret version: %v", err)
+		return nil, fmt.Errorf("failed to access secret version: %v", err)
 	}
 
-	return result.Payload.Data, nil
+	return &result.Payload.Data, nil
 }

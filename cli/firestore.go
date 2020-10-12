@@ -57,6 +57,10 @@ var firestoreDocumentGetCmd = &cobra.Command{
 			return errors.New("requires a collection")
 		}
 
+		if len(args) > 1 {
+			return errors.New("Command takes exactly 1 argument")
+		}
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -71,7 +75,10 @@ var firestoreDocumentGetCmd = &cobra.Command{
 func newDocument(ctx context.Context, collection string, document string) bool {
 	f := newFirestoreClient(ctx)
 	d, err := f.MakeKeyValue(document)
-	err = f.NewDocument(ctx, collection, d)
+	if err != nil {
+		log.Fatalf("Unable to parse JSON: %v", err)
+	}
+	err = f.NewDocument(ctx, collection, *d)
 	if err != nil {
 		log.Fatalf("whoops %v", err)
 		return false
@@ -91,7 +98,7 @@ func getDocument(ctx context.Context, collection string) string {
 	return string(results)
 }
 
-func newFirestoreClient(ctx context.Context) firestore.Client {
+func newFirestoreClient(ctx context.Context) *firestore.Client {
 	f, err := firestore.New(ctx, projectID)
 	if err != nil {
 		log.Fatalf("Unable to create new Firestore Client: %v", err)
